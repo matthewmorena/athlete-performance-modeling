@@ -13,7 +13,6 @@ Users can "trade" athlete stocks whose prices change based on performance-driven
 * [FastAPI Microservice](#fastapi-microservice)
 * [Express.js Backend](#expressjs-backend)
 * [Frontend (Next.js)](#frontend-nextjs)
-* [Setup](#setup)
 * [Roadmap](#roadmap)
 * [Inspiration](#inspiration)
 * [Disclaimer](#disclaimer)
