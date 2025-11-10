@@ -1,0 +1,10 @@
+{
+  "id": "12345",
+  "name": "John Doe",
+  "team_name": "Oregon Ducks",
+  "results": [
+    { "date": "2025-10-21", "meet_name": "NCAA Pre-Nats", "event": "8k", "time": "23:51.2" },
+    { "date": "2025-10-07", "meet_name": "Bill Dellinger Invite", "event": "8k", "time": "24:02.4" },
+    { "date": "2025-09-20", "meet_name": "BYU Autumn Classic", "event": "8k", "time": "23:59.8" }
+  ]
+}

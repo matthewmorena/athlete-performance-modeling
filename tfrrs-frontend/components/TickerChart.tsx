@@ -1,0 +1,35 @@
+"use client";
+
+import {
+  LineChart,
+  Line,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from "recharts";
+
+interface TickerChartProps {
+  data: { date: string; price: number }[];
+}
+
+export default function TickerChart({ data }: TickerChartProps) {
+  return (
+    <div className="h-64 bg-white rounded-xl border p-4 shadow-sm">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data}>
+          <XAxis dataKey="date" />
+          <YAxis />
+          <Tooltip />
+          <Line
+            type="monotone"
+            dataKey="price"
+            stroke="#3b82f6"
+            strokeWidth={2}
+            dot={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
