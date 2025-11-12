@@ -43,15 +43,11 @@ export default async function AthletePage({ params }: { params: Promise<{ id: st
           <h1 className="text-2xl font-semibold">{athlete.athlete_name}</h1>
           <p className="text-gray-600">
             {athlete.class_year && `${athlete.class_year} • `}
-            {athlete.current_team_slug
-              ?.split("_")
-              .slice(-1)
-              .join(" ")
-              .replace(/-/g, " ")}
+            <a className="text-green-700 hover:underline" href={`/teams/${athlete.current_team_slug}`}>{athlete.current_team_name}</a>
           </p>
         </div>
         <div className="text-right">
-          <div className="text-3xl font-bold text-green-600">
+          <div className="text-3xl font-bold text-green-700">
             {tickerData[tickerData.length - 1].price.toFixed(2)}
           </div>
           <p className="text-xs text-gray-500">Athlete Rating</p>
@@ -64,9 +60,9 @@ export default async function AthletePage({ params }: { params: Promise<{ id: st
         <h2 className="text-l font-semibold">Results</h2>
       </div>
       {/* Results Table */}
-      <div className="bg-white rounded-xl border shadow-sm">
+      <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
         <table className="w-full text-sm text-gray-500">
-          <thead className="border-b bg-gray-50">
+          <thead className="border-b  bg-gray-50">
             <tr>
               <th className="text-left py-2 px-4">Date</th>
               <th className="text-left py-2 px-4">Meet</th>
@@ -78,12 +74,12 @@ export default async function AthletePage({ params }: { params: Promise<{ id: st
           </thead>
           <tbody>
             {athlete.results?.map((r: any, idx: number) => (
-              <tr key={idx} className="border-b hover:bg-gray-50">
+              <tr key={idx} className="border-b hover:bg-green-100">
                 <td className="py-2 px-4">{r.date}</td>
                 <td className="py-2 px-4">
                   <a
-                    href={`/meets/${r.meet_id}`}
-                    className="text-blue-600 hover:underline"
+                    href={`/meets/${r.meet_type}/${r.meet_id}`}
+                    className="text-green-700 hover:underline"
                   >
                     {r.meet_name}
                   </a>

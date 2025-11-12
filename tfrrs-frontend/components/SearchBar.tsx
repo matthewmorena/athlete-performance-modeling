@@ -63,14 +63,14 @@ export default function SearchBar() {
               <li key={athlete.athlete_id}>
                 <Link
                   href={`/athletes/${athlete.athlete_id}`}
-                  className="text-gray-500 block px-4 py-2 hover:bg-gray-50"
+                  className="text-gray-500 block px-4 py-2 hover:bg-green-100 hover:rounded-lg"
                   onClick={() => {
                     setShowDropdown(false);
                     setQuery("");
                   }}
                 >
                   <span className="font-medium">{athlete.athlete_name}</span>
-                  <span className="text-green-900 text-xs ml-1">
+                  <span className="text-green-700 text-xs ml-1">
                     • {athlete.team_name}
                   </span>
                 </Link>
