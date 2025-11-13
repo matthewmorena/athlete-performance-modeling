@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import XCEventSection from "@/components/XCEventSection";
 
 async function getMeet(id: string) {
   try {
@@ -33,35 +34,7 @@ export default async function XCMeetPage({ params }: { params: Promise<{ id: str
 
       <div className="space-y-6">
         {meet.events.map((event: any) => (
-          <div key={event.event_id} className="bg-white border border-green-200 rounded-xl shadow-sm overflow-hidden">
-            <div className="px-4 py-2 border-b bg-green-100 text-green-800 font-semibold">
-              {event.event_name}
-            </div>
-            <table className="w-full text-sm">
-              <thead className="bg-green-50 border-b">
-                <tr>
-                  <th className="text-left py-2 px-4">Place</th>
-                  <th className="text-left py-2 px-4">Athlete</th>
-                  <th className="text-left py-2 px-4">Team</th>
-                  <th className="text-right py-2 px-4">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {event.results.map((r: any, i: number) => (
-                  <tr key={i} className="border-b hover:bg-green-50">
-                    <td className="py-2 px-4">{r.place}</td>
-                    <td className="py-2 px-4 text-blue-700 hover:underline">
-                      <a href={`/athletes/${r.athlete_id}`}>{r.athlete_name}</a>
-                    </td>
-                    <td className="py-2 px-4 text-blue-700 hover:underline">
-                      <a href={`/teams/${r.team_slug}`}>{r.team_name}</a>
-                    </td>
-                    <td className="py-2 px-4 text-right font-medium">{r.time}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            <XCEventSection key={event.event_id} event={event} />
         ))}
       </div>
     </div>
