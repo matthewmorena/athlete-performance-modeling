@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import TickerChart from "@/components/TickerChart";
+import { scorePerformance } from "@/lib/points";
+import { sortByDateDesc, formatSeconds } from "@/lib/time";
 
 async function getAthlete(id: string) {
   try {
@@ -30,13 +32,38 @@ export default async function AthletePage({ params }: { params: Promise<{ id: st
   const athlete = await getAthlete(id);
   if (!athlete) return notFound();
 
-  const tickerData = Array.from({ length: 10 }, (_, i) => ({
-    date: `Week ${i + 1}`,
-    price: Math.round(100 + Math.random() * 20),
+// Build points series from results with mark_int
+  const results = athlete.results;
+
+  const series = await Promise.all(
+    results
+      .filter((r: any) => typeof r.mark_int === "number" && r.mark_int > 0)
+      .map(async (r: any) => {
+        const { points, mode } = await scorePerformance({
+          event: r.event,
+          gender: athlete.gender.toLowerCase() as "male" | "female",
+          markSeconds: r.mark_int,
+          meetType: r.meet_type,
+        });
+        return {
+          date: r.date,
+          event: r.event,
+          points,
+          mode,
+          label: `${r.event} • ${formatSeconds(r.mark_int)} • ${r.meet_name}`,
+        };
+      })
+  );
+
+  // Recharts input: latest first or reverse for chronological
+  const tickerData = [...series].reverse().map((d) => ({
+    date: d.date,
+    rating: d.points, // "rating" field drives the existing chart
+    label: d.label,
   }));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -47,10 +74,16 @@ export default async function AthletePage({ params }: { params: Promise<{ id: st
           </p>
         </div>
         <div className="text-right">
-          <div className="text-3xl font-bold text-green-700">
-            {tickerData[tickerData.length - 1].price.toFixed(2)}
-          </div>
-          <p className="text-xs text-gray-500">Athlete Rating</p>
+          {tickerData.length ? (
+            <div>
+              <div className="text-3xl font-bold text-green-600">
+                {tickerData.at(-1)?.rating.toFixed(2)}
+              </div>
+              <p className="text-xs text-gray-500">Athlete Rating</p>
+            </div>
+          ) : (
+            <div className="text-gray-500 text-sm italic">No timed results yet</div>
+          )}
         </div>
       </div>
 

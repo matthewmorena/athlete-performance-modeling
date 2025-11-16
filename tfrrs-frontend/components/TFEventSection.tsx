@@ -41,7 +41,7 @@ export default function TFEventSection({ eventGroup, forceOpen = false }: TFEven
       {/* Body */}
       <div
         className={`transition-[max-height] duration-500 ease-in-out ${
-          open ? "max-h-[2000px]" : "max-h-0"
+          open ? "max-h-[5000px]" : "max-h-0"
         } overflow-hidden`}
       >
         {/* Finals */}

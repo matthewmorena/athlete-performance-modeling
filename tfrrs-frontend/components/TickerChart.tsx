@@ -10,7 +10,7 @@ import {
 } from "recharts";
 
 interface TickerChartProps {
-  data: { date: string; price: number }[];
+  data: { date: string; rating: number }[];
 }
 
 export default function TickerChart({ data }: TickerChartProps) {
@@ -23,8 +23,8 @@ export default function TickerChart({ data }: TickerChartProps) {
           <Tooltip />
           <Line
             type="monotone"
-            dataKey="price"
-            stroke="#3b82f6"
+            dataKey="rating"
+            stroke="#008235"
             strokeWidth={2}
             dot={false}
           />

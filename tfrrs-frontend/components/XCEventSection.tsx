@@ -30,7 +30,7 @@ export default function XCEventSection({ event, forceOpen = false }: XCEventSect
       {/* Collapsible body */}
       <div
         className={`transition-[max-height] duration-500 ease-in-out ${
-          open ? "max-h-[1500px]" : "max-h-0"
+          open ? "max-h-[10000px]" : "max-h-0"
         } overflow-hidden`}
       >
         <XCResultsTable results={event.results} />
