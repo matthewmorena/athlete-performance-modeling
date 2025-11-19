@@ -72,9 +72,11 @@ const CONVERSIONS: Record<string, number> = {
   "1000->800m": 1 / 1.32,
 
   // 1500 m family
+  "1600->1500m": 1 / 1.0737,
   "mile->1500m": 1 / 1.08,
 
   // 3000 m family
+  "3200->3000m": 1 / 1.0737,
   "4k-xc->3000m": 1 / 1.44,
 
   // 5000 m family
@@ -106,24 +108,27 @@ function applyFormula(spec: FormulaSpec, seconds: number): number {
 
 // Simple map from raw event strings → normalized keys we’ll use for tables/formulas.
 export function normalizeEvent(raw: string, meetType?: "xc" | "tf"): EventKey {
+  //if (!raw || typeof raw !== "string") return "unknown";
   const s = raw.trim().toLowerCase();
   // normalize common distances
 
   if (s.includes("1000")) return "1000";
   if (s.includes("mile")) return "mile";
   if (s.includes("1500")) return "1500";
+  if (s.includes("1600")) return "1600";
   if (s.includes("3000")) return "3000";
+  if (s.includes("3200")) return "3200";
   if (s.includes("5000")) return "5000";
   if (s.includes("10,000")) return "10000";
   if (s.includes("10000") || s === "10k") return meetType === "xc" ? "10k-xc" : "10000";
-  if (s === "8k") return "8k-xc";
+  if (s.includes("8k")) return "8k-xc";
   if (s === "6k") return "6k-xc";
   if (s === "5k") return "5k-xc";
   if (s === "4k") return "4k-xc";
   if (s.includes("3.1m")) return "5k-xc";
   if (s.includes("3.11m")) return "5k-xc";
   if (s.includes("4m")) return "4m-xc";
-  if (s.includes("4.97m")) return "8k-xc";
+  if (s.includes("4.97")) return "8k-xc";
   if (s.includes("5m")) return "8k-xc";
   // fallback to raw
   return raw.toLowerCase();

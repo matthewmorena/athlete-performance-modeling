@@ -15,7 +15,7 @@ interface TickerChartProps {
 
 export default function TickerChart({ data }: TickerChartProps) {
   return (
-    <div className="h-64 bg-white rounded-xl border p-4 shadow-sm">
+    <div className="h-64 bg-white rounded-xl border p-4 shadow-sm text-gray-500">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data}>
           <XAxis dataKey="date" />

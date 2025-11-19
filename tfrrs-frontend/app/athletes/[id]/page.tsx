@@ -40,17 +40,17 @@ export default async function AthletePage({ params }: { params: Promise<{ id: st
       .filter((r: any) => typeof r.mark_int === "number" && r.mark_int > 0)
       .map(async (r: any) => {
         const { points, mode } = await scorePerformance({
-          event: r.event,
+          event: r.event_name,
           gender: athlete.gender.toLowerCase() as "male" | "female",
           markSeconds: r.mark_int,
           meetType: r.meet_type,
         });
         return {
           date: r.date,
-          event: r.event,
+          event: r.event_name,
           points,
           mode,
-          label: `${r.event} • ${formatSeconds(r.mark_int)} • ${r.meet_name}`,
+          label: `${r.event_name} • ${formatSeconds(r.mark_int)} • ${r.meet_name}`,
         };
       })
   );
@@ -117,7 +117,7 @@ export default async function AthletePage({ params }: { params: Promise<{ id: st
                     {r.meet_name}
                   </a>
                 </td>
-                <td className="py-2 px-4">{r.event}</td>
+                <td className="py-2 px-4">{r.event_name}</td>
                 <td className="py-2 px-4 text-right font-medium">{r.mark}</td>
                 <td className="py-2 px-4 text-right">{r.place}</td>
                 <td className="py-2 px-4 text-right">
