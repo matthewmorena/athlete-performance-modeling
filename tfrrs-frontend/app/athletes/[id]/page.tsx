@@ -1,133 +1,173 @@
 import { notFound } from "next/navigation";
 import TickerChart from "@/components/TickerChart";
-import { scorePerformance } from "@/lib/points";
-import { sortByDateDesc, formatSeconds } from "@/lib/time";
+import { isSupportedScoringEvent, scorePerformance } from "@/lib/points";
+import { formatSeconds, sortByDateDesc } from "@/lib/time";
+import type { AthleteDetail } from "@/lib/types";
 
-async function getAthlete(id: string) {
+async function getAthlete(id: string): Promise<AthleteDetail | null> {
   try {
-    // Construct an absolute URL for server-side fetches
-    const baseUrl =
-      typeof window === "undefined"
-        ? process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-        : "";
-
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
     const res = await fetch(`${baseUrl}/api/athletes/${id}`, {
       next: { revalidate: 60 },
     });
 
-    console.log("Response status:", res.status);
     if (!res.ok) return null;
-
-    const data = await res.json();
-    console.log("Fetched athlete:", data);
-    return data;
-  } catch (err) {
-    console.error("Fetch failed:", err);
+    return (await res.json()) as AthleteDetail;
+  } catch (error) {
+    console.error("Athlete fetch failed:", error);
     return null;
   }
 }
 
-export default async function AthletePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params; // ✅ unwrap the params Promise
+export default async function AthletePage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
   const athlete = await getAthlete(id);
   if (!athlete) return notFound();
 
-// Build points series from results with mark_int
-  const results = athlete.results;
+  const results = sortByDateDesc(athlete.results ?? []);
+  const normalizedGender = athlete.gender.toLowerCase();
+  const gender = normalizedGender === "female" ? "female" : "male";
 
   const series = await Promise.all(
     results
-      .filter((r: any) => typeof r.mark_int === "number" && r.mark_int > 0)
-      .map(async (r: any) => {
+      .filter(
+        (result) =>
+          typeof result.mark_int === "number" &&
+          result.mark_int > 0 &&
+          isSupportedScoringEvent(result.event_name, result.meet_type),
+      )
+      .map(async (result) => {
+        const markSeconds = result.mark_int as number;
         const { points, mode } = await scorePerformance({
-          event: r.event_name,
-          gender: athlete.gender.toLowerCase() as "male" | "female",
-          markSeconds: r.mark_int,
-          meetType: r.meet_type,
+          event: result.event_name,
+          gender,
+          markSeconds,
+          meetType: result.meet_type,
         });
+
         return {
-          date: r.date,
-          event: r.event_name,
+          date: result.date,
+          event: result.event_name,
           points,
           mode,
-          label: `${r.event_name} • ${formatSeconds(r.mark_int)} • ${r.meet_name}`,
+          label: `${result.event_name} • ${formatSeconds(markSeconds)} • ${result.meet_name}`,
         };
-      })
+      }),
   );
 
-  // Recharts input: latest first or reverse for chronological
-  const tickerData = [...series].reverse().map((d) => ({
-    date: d.date,
-    rating: d.points, // "rating" field drives the existing chart
-    label: d.label,
+  const tickerData = [...series].reverse().map((item) => ({
+    date: item.date,
+    rating: item.points,
+    label: item.label,
   }));
+  const latestRating = tickerData.at(-1)?.rating;
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">{athlete.athlete_name}</h1>
-          <p className="text-gray-600">
-            {athlete.class_year && `${athlete.class_year} • `}
-            <a className="text-green-700 hover:underline" href={`/teams/${athlete.current_team_slug}`}>{athlete.current_team_name}</a>
-          </p>
-        </div>
-        <div className="text-right">
-          {tickerData.length ? (
-            <div>
-              <div className="text-3xl font-bold text-green-600">
-                {tickerData.at(-1)?.rating.toFixed(2)}
-              </div>
-              <p className="text-xs text-gray-500">Athlete Rating</p>
+    <div className="mx-auto w-full max-w-6xl space-y-5 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <section className="relative overflow-hidden rounded-2xl border border-border bg-panel p-5 shadow-[0_18px_50px_rgb(0_0_0/0.22)] sm:p-6">
+        <div className="absolute inset-x-0 top-0 h-1 bg-accent" />
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+              Athlete profile
+            </p>
+            <h1 className="mt-2 truncate text-3xl font-extrabold tracking-[-0.035em] text-foreground sm:text-4xl">
+              {athlete.athlete_name}
+            </h1>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted">
+              {athlete.class_year && (
+                <span className="rounded-full border border-border bg-surface px-3 py-1">
+                  {athlete.class_year}
+                </span>
+              )}
+              <a
+                className="rounded-full border border-border px-3 py-1 font-semibold text-foreground transition-colors hover:border-accent/60 hover:text-accent"
+                href={`/teams/${athlete.current_team_slug}`}
+              >
+                {athlete.current_team_name}
+              </a>
+              <span className="rounded-full border border-border px-3 py-1 capitalize">
+                {athlete.gender}
+              </span>
             </div>
-          ) : (
-            <div className="text-gray-500 text-sm italic">No timed results yet</div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      {/* Chart */}
+          <div className="shrink-0 rounded-2xl border border-border bg-background/60 px-5 py-4 sm:text-right">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+              Current rating
+            </p>
+            {latestRating !== undefined ? (
+              <strong className="mt-1 block font-mono text-3xl text-accent">
+                {latestRating.toFixed(2)}
+              </strong>
+            ) : (
+              <span className="mt-2 block text-sm text-muted">Not yet rated</span>
+            )}
+            <p className="mt-1 text-xs text-muted">
+              {series.length} scored performance{series.length === 1 ? "" : "s"}
+            </p>
+          </div>
+        </div>
+      </section>
+
       <TickerChart data={tickerData} />
-      <div>
-        <h2 className="text-l font-semibold">Results</h2>
-      </div>
-      {/* Results Table */}
-      <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-        <table className="w-full text-sm text-gray-500">
-          <thead className="border-b  bg-gray-50">
-            <tr>
-              <th className="text-left py-2 px-4">Date</th>
-              <th className="text-left py-2 px-4">Meet</th>
-              <th className="text-left py-2 px-4">Event</th>
-              <th className="text-right py-2 px-4">Mark</th>
-              <th className="text-right py-2 px-4">Place</th>
-              <th className="text-right py-2 px-4">Round</th>
-            </tr>
-          </thead>
-          <tbody>
-            {athlete.results?.map((r: any, idx: number) => (
-              <tr key={idx} className="border-b hover:bg-green-100">
-                <td className="py-2 px-4">{r.date}</td>
-                <td className="py-2 px-4">
-                  <a
-                    href={`/meets/${r.meet_type}/${r.meet_id}`}
-                    className="text-green-700 hover:underline"
-                  >
-                    {r.meet_name}
-                  </a>
-                </td>
-                <td className="py-2 px-4">{r.event_name}</td>
-                <td className="py-2 px-4 text-right font-medium">{r.mark}</td>
-                <td className="py-2 px-4 text-right">{r.place}</td>
-                <td className="py-2 px-4 text-right">
-                  {r.round ? r.round : "—"}
-                </td>
+
+      <section className="overflow-hidden rounded-2xl border border-border bg-panel shadow-[0_18px_50px_rgb(0_0_0/0.18)]">
+        <header className="flex items-end justify-between gap-4 border-b border-border px-4 py-4 sm:px-5">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+              Competition history
+            </p>
+            <h2 className="mt-1 text-lg font-bold text-foreground">Results</h2>
+          </div>
+          <span className="rounded-full border border-border bg-surface px-3 py-1 text-xs text-muted">
+            {results.length} result{results.length === 1 ? "" : "s"}
+          </span>
+        </header>
+
+        <div className="trackside-scrollbar overflow-x-auto">
+          <table className="w-full min-w-[760px] text-sm">
+            <thead className="border-b border-border bg-surface/70 text-[11px] uppercase tracking-[0.09em] text-muted">
+              <tr>
+                <th className="px-4 py-3 text-left font-semibold">Date</th>
+                <th className="px-4 py-3 text-left font-semibold">Meet</th>
+                <th className="px-4 py-3 text-left font-semibold">Event</th>
+                <th className="px-4 py-3 text-right font-semibold">Mark</th>
+                <th className="px-4 py-3 text-right font-semibold">Place</th>
+                <th className="px-4 py-3 text-right font-semibold">Round</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {results.map((result, index) => (
+                <tr
+                  key={`${result.meet_id}-${result.event_name}-${result.round ?? index}`}
+                  className="border-b border-border/80 text-muted transition-colors last:border-b-0 hover:bg-surface/70 hover:text-foreground"
+                >
+                  <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">{result.date}</td>
+                  <td className="max-w-64 px-4 py-3">
+                    <a
+                      href={`/meets/${result.meet_type}/${result.meet_id}`}
+                      className="font-semibold text-foreground transition-colors hover:text-accent"
+                    >
+                      {result.meet_name}
+                    </a>
+                  </td>
+                  <td className="px-4 py-3">{result.event_name}</td>
+                  <td className="px-4 py-3 text-right font-mono font-bold text-foreground">
+                    {result.mark}
+                  </td>
+                  <td className="px-4 py-3 text-right">{result.place ?? "—"}</td>
+                  <td className="px-4 py-3 text-right capitalize">{result.round || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }

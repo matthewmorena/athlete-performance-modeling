@@ -1,17 +1,21 @@
-import "./globals.css";
+import type { Metadata } from "next";
+import type { ReactNode } from "react";
+
 import Navbar from "@/components/Navbar";
 
-export const metadata = {
+import "./globals.css";
+
+export const metadata: Metadata = {
   title: "Track Exchange",
-  description: "Trade athlete stocks, track results, and ELO ratings.",
+  description: "Explore athlete results, ELO ratings, and performance momentum.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
-      <body className="bg-green-50 text-gray-900 min-h-screen flex flex-col">
+      <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         <Navbar />
-        <main className="flex-1 p-6">{children}</main>
+        <main className="min-h-[calc(100vh-69px)]">{children}</main>
       </body>
     </html>
   );
