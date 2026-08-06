@@ -4,15 +4,6 @@ type EventKey = string; // e.g. "1500", "5000", "10k", "mile", "8k-xc", "10k-xc"
 
 export type ScoringMode = "table" | "formula" | "fallback";
 
-export interface FormulaSpec {
-  // Add whatever you eventually need; these are placeholders.
-  // Example (not official WA): points = A * (B - T)^C
-  A: number;
-  B: number;
-  C: number;
-  kind: "time_power";
-}
-
 const FORMULAS: Partial<Record<`${EventKey}_${Gender}`, { a: number; b: number; c: number }>> = {
   // --- 100 m ---
   "100_male": { a: 7026, b: -820, c: 23.9 },
