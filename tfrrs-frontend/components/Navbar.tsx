@@ -3,45 +3,62 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "classnames";
+
 import SearchBar from "./SearchBar";
 
-const Navbar = () => {
+const navItems = [
+  { href: "/", label: "Market" },
+  { href: "/teams", label: "Teams" },
+  { href: "/meets", label: "Meets" },
+] as const;
+
+export default function Navbar() {
   const pathname = usePathname();
 
-  const navItems = [
-    { href: "/", label: "Home" },
-    { href: "/teams", label: "Teams" },
-    { href: "/meets", label: "Meets" },
-  ];
-
   return (
-    <nav className="border-b border-green-200 bg-green-700 text-white sticky top-0 z-50 shadow-sm">
-      <div className="max-w-6xl mx-auto flex items-center justify-between p-4 gap-4">
-        <Link href="/" className="text-xl font-bold text-white hover:text-green-200">
-          Track Exchange
+    <header className="sticky top-0 z-50 border-b border-border bg-panel/95 backdrop-blur">
+      <div className="mx-auto flex min-h-[68px] max-w-[1440px] items-center gap-3 px-4 sm:px-6">
+        <Link href="/" className="flex shrink-0 items-center gap-3" aria-label="Track Exchange home">
+          <span className="grid size-9 place-items-center rounded-xl bg-accent text-sm font-extrabold text-accent-ink">
+            TX
+          </span>
+          <span className="hidden font-bold tracking-tight text-foreground sm:inline">Track Exchange</span>
         </Link>
 
-        <div className="flex-1 flex justify-center">
+        <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation">
+          {navItems.map((item) => {
+            const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={clsx(
+                  "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-accent/10 text-foreground"
+                    : "text-muted hover:bg-surface hover:text-foreground",
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="ml-auto min-w-0 flex-1 sm:max-w-sm">
           <SearchBar />
         </div>
 
-        <div className="flex space-x-6">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={clsx(
-                "text-sm font-medium transition-colors hover:text-green-200",
-                pathname === item.href && "text-green-100 underline"
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
+        <select
+          aria-label="Season"
+          defaultValue="2026-outdoor"
+          className="hidden rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors hover:border-accent/50 lg:block"
+        >
+          <option value="2026-outdoor">2026 Outdoor</option>
+          <option value="2026-indoor">2026 Indoor</option>
+        </select>
       </div>
-    </nav>
+    </header>
   );
-};
-
-export default Navbar;
+}

@@ -1,105 +1,176 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { useId, useState } from "react";
+import type { TrackEventGroup, TrackRound } from "@/lib/types";
 
 interface TFEventSectionProps {
-  eventGroup: {
-    event_id: string;
-    event_name: string;
-    rounds: any[];
-  };
+  eventGroup: TrackEventGroup;
   forceOpen?: boolean;
 }
 
-export default function TFEventSection({ eventGroup, forceOpen = false }: TFEventSectionProps) {
+export default function TFEventSection({
+  eventGroup,
+  forceOpen = false,
+}: TFEventSectionProps) {
   const [open, setOpen] = useState(forceOpen);
-  useEffect(() => setOpen(forceOpen), [forceOpen]);
+  const contentId = useId();
 
-  const finals = eventGroup.rounds.filter((r) =>
-    r.round?.toLowerCase().includes("final")
+  const finals = eventGroup.rounds.filter((round) =>
+    round.round?.toLowerCase().includes("final"),
   );
   const prelims = eventGroup.rounds.filter(
-    (r) => !r.round?.toLowerCase().includes("final")
+    (round) => !round.round?.toLowerCase().includes("final"),
+  );
+  const resultCount = eventGroup.rounds.reduce(
+    (total, round) => total + round.results.length,
+    0,
   );
 
   return (
-    <div className="bg-white border border-green-200 rounded-xl shadow-sm overflow-hidden">
-      {/* Header */}
+    <article className="overflow-hidden rounded-2xl border border-border bg-panel shadow-[0_14px_36px_rgb(0_0_0/0.16)]">
       <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex justify-between items-center px-4 py-3 bg-green-100 hover:bg-green-200 transition-colors text-green-800"
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+        aria-controls={contentId}
+        className="group flex w-full items-center justify-between gap-4 px-4 py-4 text-left transition-colors hover:bg-surface/70 sm:px-5"
       >
-        <div className="text-left font-semibold">{eventGroup.event_name}</div>
-        <span
-          className={`text-lg transition-transform ${
-            open ? "rotate-90 text-green-700" : "text-gray-500"
-          }`}
-        >
-          ▶
+        <span className="min-w-0">
+          <span className="block truncate font-bold text-foreground transition-colors group-hover:text-accent">
+            {eventGroup.event_name}
+          </span>
+          <span className="mt-1 block text-xs text-muted">
+            {eventGroup.rounds.length} round{eventGroup.rounds.length === 1 ? "" : "s"} · {resultCount}{" "}
+            result{resultCount === 1 ? "" : "s"}
+          </span>
+        </span>
+
+        <span className="flex shrink-0 items-center gap-3">
+          {finals.length > 0 && (
+            <span className="hidden rounded-full border border-border bg-background/60 px-2.5 py-1 text-[11px] font-semibold text-muted sm:inline-flex">
+              Final available
+            </span>
+          )}
+          <span
+            aria-hidden="true"
+            className={`grid size-8 place-items-center rounded-full border transition-all ${
+              open
+                ? "rotate-180 border-accent bg-accent text-accent-ink"
+                : "border-border bg-surface text-muted group-hover:border-accent/60 group-hover:text-accent"
+            }`}
+          >
+            <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="m5 7.5 5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
         </span>
       </button>
 
-      {/* Body */}
       <div
-        className={`transition-[max-height] duration-500 ease-in-out ${
-          open ? "max-h-[5000px]" : "max-h-0"
-        } overflow-hidden`}
+        id={contentId}
+        className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+          open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
       >
-        {/* Finals */}
-        {finals.length > 0 && (
-          <div className="p-4 pt-0">
-            {finals.map((round, i) => (
-              <RoundTable key={i} round={round} />
-            ))}
-          </div>
-        )}
+        <div className="overflow-hidden">
+          <div className="border-t border-border p-3 sm:p-4">
+            {finals.length > 0 && (
+              <div className="space-y-3">
+                {finals.map((round, index) => (
+                  <RoundTable
+                    key={`${round.round ?? "final"}-${round.heat ?? index}`}
+                    round={round}
+                  />
+                ))}
+              </div>
+            )}
 
-        {/* Prelims grid */}
-        {prelims.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-            {prelims.map((round, i) => (
-              <RoundTable key={i} round={round} compact />
-            ))}
+            {prelims.length > 0 && (
+              <div className={`grid gap-3 ${finals.length > 0 ? "mt-3" : ""} lg:grid-cols-2`}>
+                {prelims.map((round, index) => (
+                  <RoundTable
+                    key={`${round.round ?? "round"}-${round.heat ?? index}`}
+                    round={round}
+                    compact
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        )}
-
+        </div>
       </div>
-    </div>
+    </article>
   );
 }
 
-/* --- Subcomponent for each round/heat --- */
-function RoundTable({ round, compact = false }: { round: any; compact?: boolean }) {
+function RoundTable({
+  round,
+  compact = false,
+}: {
+  round: TrackRound;
+  compact?: boolean;
+}) {
+  const roundLabel = [round.round, round.heat ? `Heat ${round.heat}` : null]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <div className={`border border-green-200 rounded-lg shadow-sm ${compact ? "" : "mb-4"}`}>
-      <div className="px-3 py-2 bg-green-50 border-b text-green-800 text-sm font-semibold">
-        {round.round && <span className="capitalize">{round.round}</span>}{" "}
-        {round.heat && <span>Heat {round.heat}</span>}{" "}
-        {round.wind && <span className="text-gray-700 text-xs ml-1">{round.wind}</span>}
-      </div>
-      <table className="w-full text-sm">
-        <thead className="border-b bg-green-50 text-gray-700">
-          <tr>
-            <th className="text-left py-1 px-3">Pl</th>
-            <th className="text-left py-1 px-3">Athlete</th>
-            <th className="text-left py-1 px-3">Team</th>
-            <th className="text-right py-1 px-3">Mark</th>
-          </tr>
-        </thead>
-        <tbody>
-          {round.results.map((r: any, idx: number) => (
-            <tr key={idx} className="border-b hover:bg-green-50">
-              <td className="py-1 px-3 text-gray-700">{r.place}</td>
-              <td className="py-1 px-3 text-green-700 hover:underline">
-                <a href={`/athletes/${r.athlete_id}`}>{r.athlete_name}</a>
-              </td>
-              <td className="py-1 px-3 text-green-700 hover:underline">
-                <a href={`/teams/${r.team_slug}`}>{r.team_name}</a>
-              </td>
-              <td className="py-1 px-3 text-right font-medium text-gray-700">{r.time || r.mark}</td>
+    <section className="overflow-hidden rounded-xl border border-border bg-background/35">
+      <header className="flex items-center justify-between gap-3 border-b border-border bg-surface/70 px-3 py-2.5">
+        <div>
+          <h3 className="text-sm font-bold capitalize text-foreground">{roundLabel || "Results"}</h3>
+          <p className="mt-0.5 text-[11px] text-muted">
+            {round.results.length} result{round.results.length === 1 ? "" : "s"}
+          </p>
+        </div>
+        {round.wind && (
+          <span className="rounded-full border border-border px-2.5 py-1 font-mono text-[11px] text-muted">
+            Wind {round.wind}
+          </span>
+        )}
+      </header>
+
+      <div className="trackside-scrollbar overflow-x-auto">
+        <table className={`w-full text-sm ${compact ? "min-w-[520px]" : "min-w-[620px]"}`}>
+          <thead className="border-b border-border text-[10px] uppercase tracking-[0.09em] text-muted">
+            <tr>
+              <th className="px-3 py-2 text-left font-semibold">Place</th>
+              <th className="px-3 py-2 text-left font-semibold">Athlete</th>
+              <th className="px-3 py-2 text-left font-semibold">Team</th>
+              <th className="px-3 py-2 text-right font-semibold">Mark</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {round.results.map((result) => (
+              <tr
+                key={`${result.athlete_id}-${result.place ?? result.time ?? result.mark ?? "result"}`}
+                className="border-b border-border/70 text-muted transition-colors last:border-b-0 hover:bg-surface/60 hover:text-foreground"
+              >
+                <td className="px-3 py-2.5 font-mono text-xs">{result.place ?? "—"}</td>
+                <td className="px-3 py-2.5">
+                  <a
+                    href={`/athletes/${result.athlete_id}`}
+                    className="font-semibold text-foreground transition-colors hover:text-accent"
+                  >
+                    {result.athlete_name}
+                  </a>
+                </td>
+                <td className="px-3 py-2.5">
+                  <a
+                    href={`/teams/${result.team_slug}`}
+                    className="transition-colors hover:text-accent"
+                  >
+                    {result.team_name}
+                  </a>
+                </td>
+                <td className="px-3 py-2.5 text-right font-mono font-bold text-foreground">
+                  {result.time || result.mark || "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
