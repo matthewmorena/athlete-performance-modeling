@@ -47,6 +47,7 @@ export default async function AthletePage({
           gender,
           markSeconds,
           meetType: result.meet_type,
+          wind: result.wind,
         });
 
         return {

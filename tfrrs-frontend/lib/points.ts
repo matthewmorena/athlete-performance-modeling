@@ -182,6 +182,48 @@ export function isSupportedScoringEvent(
   return hasFormula || key in FALLBACK_DISTANCES || CONVERTIBLE_EVENTS.has(key);
 }
 
+const WIND_ADJUSTED_EVENTS = new Set([
+  "100",
+  "200",
+  "100h",
+  "110h",
+]);
+
+export function applyWindAdjustment(
+  points: number,
+  event: string,
+  wind?: number | null,
+): number {
+  const normalizedEvent = normalizeEvent(event);
+
+  // Wind adjustment only applies to these sprint/hurdle events.
+  if (
+    !normalizedEvent ||
+    !WIND_ADJUSTED_EVENTS.has(normalizedEvent)
+  ) {
+    return points;
+  }
+
+  // Null means we do not have a usable wind reading.
+  if (wind == null || !Number.isFinite(wind)) {
+    return points;
+  }
+
+  let adjustment = 0;
+
+  if (wind < 0) {
+    // Headwind: +6 points per 1.0 m/s.
+    adjustment = Math.abs(wind) * 6;
+  } else if (wind > 2.0) {
+    // Wind-aided: -6 points per 1.0 m/s.
+    // WA uses the full reading once the wind exceeds +2.0.
+    adjustment = -(wind * 6);
+  }
+
+  // 0.0 through +2.0 receives no adjustment.
+  return Math.max(0, Math.round(points + adjustment));
+}
+
 // Try to load a JSON table like /wa-tables/Male/1500.json with structure:
 // { "unit": "s", "points": [[timeSeconds, points], ...sorted asc by time] }
 async function lookupTablePoints(
@@ -245,11 +287,13 @@ export async function scorePerformance({
   gender,
   markSeconds,
   meetType,
+  wind,
 }: {
   event: string;
   gender: Gender;
   markSeconds: number;
   meetType?: "xc" | "tf";
+  wind?: number | null;
 }): Promise<{ points: number; mode: ScoringMode }> {
   let key = normalizeEvent(event, meetType);
   const g = gender.toLowerCase() as Gender;
@@ -257,6 +301,7 @@ export async function scorePerformance({
   // --- handle conversions ---
   for (const [fromTo, factor] of Object.entries(CONVERSIONS)) {
     const [from, to] = fromTo.split("->");
+
     if (key === from) {
       key = to.replace("m", "");
       markSeconds *= factor;
@@ -266,18 +311,40 @@ export async function scorePerformance({
 
   // --- try quadratic formula ---
   const spec = FORMULAS[`${key}_${g}`];
+
   if (spec) {
     const { a, b, c } = spec;
-    const points = Math.round(a + b * markSeconds + c * markSeconds ** 2);
-    return { points, mode: "formula" };
+
+    const basePoints = Math.round(
+      a + b * markSeconds + c * markSeconds ** 2,
+    );
+
+    return {
+      points: applyWindAdjustment(basePoints, event, wind),
+      mode: "formula",
+    };
   }
 
-  // --- fallbacks (table or proxy) ---
+  // --- try WA table ---
   const table = await lookupTablePoints(key, gender);
+
   if (table) {
-    return { points: Math.round(interpolate(table, markSeconds)), mode: "table" };
+    const basePoints = Math.round(
+      interpolate(table, markSeconds),
+    );
+
+    return {
+      points: applyWindAdjustment(basePoints, event, wind),
+      mode: "table",
+    };
   }
 
-  return { points: fallbackPoints(key, markSeconds), mode: "fallback" };
+  // --- fallback ---
+  const basePoints = fallbackPoints(key, markSeconds);
+
+  return {
+    points: applyWindAdjustment(basePoints, event, wind),
+    mode: "fallback",
+  };
 }
 

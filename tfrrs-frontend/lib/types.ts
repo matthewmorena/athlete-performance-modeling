@@ -9,6 +9,7 @@ export interface AthletePerformanceResult {
   meet_id: string | number;
   meet_name: string;
   mark: string;
+  wind?: number | null;
   place: string | number | null;
   round?: string | null;
 }
