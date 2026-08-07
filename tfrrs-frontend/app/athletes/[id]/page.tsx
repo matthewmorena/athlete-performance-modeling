@@ -50,6 +50,8 @@ export default async function AthletePage({
         });
 
         return {
+          eventId: result.event_id,
+          meetId: result.meet_id,
           date: result.date,
           event: result.event_name,
           points,
@@ -144,7 +146,7 @@ export default async function AthletePage({
             <tbody>
               {results.map((result, index) => (
                 <tr
-                  key={`${result.meet_id}-${result.event_name}-${result.round ?? index}`}
+                  key={`${result.meet_id}-${result.event_id ?? result.event_name}-${result.round ?? "none"}-${index}`}
                   className="border-b border-border/80 text-muted transition-colors last:border-b-0 hover:bg-surface/70 hover:text-foreground"
                 >
                   <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">{result.date}</td>

@@ -2,6 +2,7 @@ export type MeetType = "xc" | "tf";
 
 export interface AthletePerformanceResult {
   date: string;
+  event_id: string | number | null;
   event_name: string;
   mark_int: number | null;
   meet_type: MeetType;
