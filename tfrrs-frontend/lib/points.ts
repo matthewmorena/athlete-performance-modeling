@@ -4,15 +4,6 @@ type EventKey = string; // e.g. "1500", "5000", "10k", "mile", "8k-xc", "10k-xc"
 
 export type ScoringMode = "table" | "formula" | "fallback";
 
-export interface FormulaSpec {
-  // Add whatever you eventually need; these are placeholders.
-  // Example (not official WA): points = A * (B - T)^C
-  A: number;
-  B: number;
-  C: number;
-  kind: "time_power";
-}
-
 const FORMULAS: Partial<Record<`${EventKey}_${Gender}`, { a: number; b: number; c: number }>> = {
   // --- 100 m ---
   "100_male": { a: 7026, b: -820, c: 23.9 },
@@ -77,6 +68,7 @@ const CONVERSIONS: Record<string, number> = {
 
   // 3000 m family
   "3200->3000m": 1 / 1.0737,
+  "2mile->3000m": 1 / 1.08,
   "4k-xc->3000m": 1 / 1.44,
 
   // 5000 m family
@@ -98,40 +90,138 @@ const CONVERSIONS: Record<string, number> = {
 };
 
 
-function applyFormula(spec: FormulaSpec, seconds: number): number {
-  if (spec.kind === "time_power") {
-    const x = Math.max(0, spec.B - seconds);
-    return Math.max(0, spec.A * Math.pow(x, spec.C));
-  }
-  return 0;
-}
 
 // Simple map from raw event strings → normalized keys we’ll use for tables/formulas.
 export function normalizeEvent(raw: string, meetType?: "xc" | "tf"): EventKey {
-  //if (!raw || typeof raw !== "string") return "unknown";
   const s = raw.trim().toLowerCase();
-  // normalize common distances
+  const compact = s
+    .replace(/meters?/g, "m")
+    .replace(/\s+/g, "")
+    .replace(/,/g, "");
 
-  if (s.includes("1000")) return "1000";
-  if (s.includes("mile")) return "mile";
-  if (s.includes("1500")) return "1500";
-  if (s.includes("1600")) return "1600";
-  if (s.includes("3000")) return "3000";
-  if (s.includes("3200")) return "3200";
-  if (s.includes("5000")) return "5000";
-  if (s.includes("10,000")) return "10000";
-  if (s.includes("10000") || s === "10k") return meetType === "xc" ? "10k-xc" : "10000";
-  if (s.includes("8k")) return "8k-xc";
-  if (s === "6k") return "6k-xc";
-  if (s === "5k") return "5k-xc";
-  if (s === "4k") return "4k-xc";
-  if (s.includes("3.1m")) return "5k-xc";
-  if (s.includes("3.11m")) return "5k-xc";
-  if (s.includes("4m")) return "4m-xc";
-  if (s.includes("4.97")) return "8k-xc";
-  if (s.includes("5m")) return "8k-xc";
-  // fallback to raw
-  return raw.toLowerCase();
+  // Relays use team marks and should not be treated as individual scores.
+  if (compact.includes("x") || compact.includes("relay") || compact === "dmr") {
+    return "relay";
+  }
+
+  // Hurdles and steeplechase must be checked before their flat-distance forms.
+  if (compact.includes("3000s") || compact.includes("3000sc")) return "3000sc";
+  if (compact.includes("2000s") || compact.includes("2000sc")) return "2000sc";
+  if (compact.includes("400h")) return "400h";
+  if (compact.includes("110h")) return "110h";
+  if (compact.includes("100h")) return "100h";
+  if (compact.includes("60h")) return "60h";
+  if (compact.includes("55h")) return "55h";
+  if (compact.includes("300h")) return "300h";
+
+  if (/^55m?$/.test(compact)) return "55m";
+  if (/^60m?$/.test(compact)) return "60m";
+  if (/^100m?$/.test(compact)) return "100";
+  if (/^200m?$/.test(compact)) return "200";
+  if (/^300m?$/.test(compact)) return "300";
+  if (/^400m?$/.test(compact)) return "400";
+  if (/^500m?$/.test(compact)) return "500";
+  if (/^600m?$/.test(compact)) return "600";
+  if (/^800m?$/.test(compact)) return "800";
+
+  // Check 10,000m before 1,000m. After punctuation is removed,
+  // "10,000" becomes "10000", which also contains the substring "1000".
+  if (/^10000m?$/.test(compact) || compact === "10k") {
+    return meetType === "xc" ? "10k-xc" : "10000";
+  }
+
+  if (/^1000m?$/.test(compact)) return "1000";
+  if (/^(2miles?|twomiles?)$/.test(compact)) return "2mile";
+  if (compact.includes("mile")) return "mile";
+  if (/^1500m?$/.test(compact)) return "1500";
+  if (/^1600m?$/.test(compact)) return "1600";
+  if (/^3000m?$/.test(compact)) return "3000";
+  if (/^3200m?$/.test(compact)) return "3200";
+  if (/^5000m?$/.test(compact)) return "5000";
+  if (compact.includes("8k")) return "8k-xc";
+  if (compact === "6k") return "6k-xc";
+  if (compact === "5k") return "5k-xc";
+  if (compact === "4k") return "4k-xc";
+  if (compact.includes("3.1m") || compact.includes("3.11m")) return "5k-xc";
+  if (compact.includes("4m")) return "4m-xc";
+  if (compact.includes("4.97") || compact.includes("5m")) return "8k-xc";
+
+  return compact || "unknown";
+}
+
+const FALLBACK_DISTANCES: Record<string, number> = {
+  "800": 800,
+  "1000": 1000,
+  "1500": 1500,
+  "1600": 1600,
+  "mile": 1609.34,
+  "3000": 3000,
+  "3200": 3200,
+  "5000": 5000,
+  "10000": 10000,
+  "4k-xc": 4000,
+  "5k-xc": 5000,
+  "6k-xc": 6000,
+  "8k-xc": 8000,
+  "10k-xc": 10000,
+};
+
+const CONVERTIBLE_EVENTS = new Set(
+  Object.keys(CONVERSIONS).map((conversion) => conversion.split("->")[0]),
+);
+
+export function isSupportedScoringEvent(
+  event: string,
+  meetType?: "xc" | "tf",
+): boolean {
+  const key = normalizeEvent(event, meetType);
+  const hasFormula = (["male", "female"] as const).some(
+    (gender) => FORMULAS[`${key}_${gender}`] !== undefined,
+  );
+
+  return hasFormula || key in FALLBACK_DISTANCES || CONVERTIBLE_EVENTS.has(key);
+}
+
+const WIND_ADJUSTED_EVENTS = new Set([
+  "100",
+  "200",
+  "100h",
+  "110h",
+]);
+
+export function applyWindAdjustment(
+  points: number,
+  event: string,
+  wind?: number | null,
+): number {
+  const normalizedEvent = normalizeEvent(event);
+
+  // Wind adjustment only applies to these sprint/hurdle events.
+  if (
+    !normalizedEvent ||
+    !WIND_ADJUSTED_EVENTS.has(normalizedEvent)
+  ) {
+    return points;
+  }
+
+  // Null means we do not have a usable wind reading.
+  if (wind == null || !Number.isFinite(wind)) {
+    return points;
+  }
+
+  let adjustment = 0;
+
+  if (wind < 0) {
+    // Headwind: +6 points per 1.0 m/s.
+    adjustment = Math.abs(wind) * 6;
+  } else if (wind > 2.0) {
+    // Wind-aided: -6 points per 1.0 m/s.
+    // WA uses the full reading once the wind exceeds +2.0.
+    adjustment = -(wind * 6);
+  }
+
+  // 0.0 through +2.0 receives no adjustment.
+  return Math.max(0, Math.round(points + adjustment));
 }
 
 // Try to load a JSON table like /wa-tables/Male/1500.json with structure:
@@ -185,11 +275,7 @@ function interpolate(points: Array<[number, number]>, seconds: number): number {
 // Use average speed scaled and exponentiated to look vaguely “points-like”.
 // Tuned so elite times land ~1000–1300, hobby times ~100–500 (hand-wavy).
 function fallbackPoints(eventKey: EventKey, seconds: number): number {
-  const distanceMeters: Record<string, number> = {
-    "800": 800, "1500": 1500, "mile": 1609.34, "3000": 3000, "5000": 5000,
-    "10000": 10000, "8k-xc": 8000, "10k-xc": 10000, "6k-xc": 6000
-  };
-  const d = distanceMeters[eventKey] ?? 1000;
+  const d = FALLBACK_DISTANCES[eventKey] ?? 1000;
   const v = d / seconds; // m/s
   // crude curve
   return Math.round(100 * Math.pow(v, 3.2));
@@ -201,11 +287,13 @@ export async function scorePerformance({
   gender,
   markSeconds,
   meetType,
+  wind,
 }: {
   event: string;
   gender: Gender;
   markSeconds: number;
   meetType?: "xc" | "tf";
+  wind?: number | null;
 }): Promise<{ points: number; mode: ScoringMode }> {
   let key = normalizeEvent(event, meetType);
   const g = gender.toLowerCase() as Gender;
@@ -213,6 +301,7 @@ export async function scorePerformance({
   // --- handle conversions ---
   for (const [fromTo, factor] of Object.entries(CONVERSIONS)) {
     const [from, to] = fromTo.split("->");
+
     if (key === from) {
       key = to.replace("m", "");
       markSeconds *= factor;
@@ -222,18 +311,40 @@ export async function scorePerformance({
 
   // --- try quadratic formula ---
   const spec = FORMULAS[`${key}_${g}`];
+
   if (spec) {
     const { a, b, c } = spec;
-    const points = Math.round(a + b * markSeconds + c * markSeconds ** 2);
-    return { points, mode: "formula" };
+
+    const basePoints = Math.round(
+      a + b * markSeconds + c * markSeconds ** 2,
+    );
+
+    return {
+      points: applyWindAdjustment(basePoints, event, wind),
+      mode: "formula",
+    };
   }
 
-  // --- fallbacks (table or proxy) ---
+  // --- try WA table ---
   const table = await lookupTablePoints(key, gender);
+
   if (table) {
-    return { points: Math.round(interpolate(table, markSeconds)), mode: "table" };
+    const basePoints = Math.round(
+      interpolate(table, markSeconds),
+    );
+
+    return {
+      points: applyWindAdjustment(basePoints, event, wind),
+      mode: "table",
+    };
   }
 
-  return { points: fallbackPoints(key, markSeconds), mode: "fallback" };
+  // --- fallback ---
+  const basePoints = fallbackPoints(key, markSeconds);
+
+  return {
+    points: applyWindAdjustment(basePoints, event, wind),
+    mode: "fallback",
+  };
 }
 

@@ -1,68 +1,106 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { useId, useState } from "react";
+import type { CrossCountryEvent, CrossCountryResult } from "@/lib/types";
 
 interface XCEventSectionProps {
-  event: any;
+  event: CrossCountryEvent;
   forceOpen?: boolean;
 }
 
-export default function XCEventSection({ event, forceOpen = false }: XCEventSectionProps) {
+export default function XCEventSection({
+  event,
+  forceOpen = false,
+}: XCEventSectionProps) {
   const [open, setOpen] = useState(forceOpen);
-  useEffect(() => setOpen(forceOpen), [forceOpen]);
+  const contentId = useId();
 
   return (
-    <div className="bg-white border border-green-200 rounded-xl shadow-sm overflow-hidden">
-      {/* Header bar */}
+    <article className="overflow-hidden rounded-2xl border border-border bg-panel shadow-[0_14px_36px_rgb(0_0_0/0.16)]">
       <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex justify-between items-center px-4 py-3 bg-green-100 hover:bg-green-200 transition-colors text-green-800"
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+        aria-controls={contentId}
+        className="group flex w-full items-center justify-between gap-4 px-4 py-4 text-left transition-colors hover:bg-surface/70 sm:px-5"
       >
-        <div className="text-left font-semibold">{event.event_name}</div>
+        <span className="min-w-0">
+          <span className="block truncate font-bold text-foreground transition-colors group-hover:text-accent">
+            {event.event_name}
+          </span>
+          <span className="mt-1 block text-xs text-muted">
+            {event.results.length} finisher{event.results.length === 1 ? "" : "s"}
+          </span>
+        </span>
+
         <span
-          className={`text-lg transition-transform ${
-            open ? "rotate-90 text-green-700" : "text-gray-500"
+          aria-hidden="true"
+          className={`grid size-8 shrink-0 place-items-center rounded-full border transition-all ${
+            open
+              ? "rotate-180 border-accent bg-accent text-accent-ink"
+              : "border-border bg-surface text-muted group-hover:border-accent/60 group-hover:text-accent"
           }`}
         >
-          ▶
+          <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="m5 7.5 5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </span>
       </button>
 
-      {/* Collapsible body */}
       <div
-        className={`transition-[max-height] duration-500 ease-in-out ${
-          open ? "max-h-[10000px]" : "max-h-0"
-        } overflow-hidden`}
+        id={contentId}
+        className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+          open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
       >
-        <XCResultsTable results={event.results} />
+        <div className="overflow-hidden">
+          <div className="border-t border-border">
+            <XCResultsTable results={event.results} />
+          </div>
+        </div>
       </div>
-    </div>
+    </article>
   );
 }
 
-/* --- Table for event results --- */
-function XCResultsTable({ results }: { results: any[] }) {
+function XCResultsTable({ results }: { results: CrossCountryResult[] }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-green-50 border-b text-gray-700">
+    <div className="trackside-scrollbar overflow-x-auto">
+      <table className="w-full min-w-[620px] text-sm">
+        <thead className="border-b border-border bg-surface/70 text-[10px] uppercase tracking-[0.09em] text-muted">
           <tr>
-            <th className="text-left py-2 px-4">Place</th>
-            <th className="text-left py-2 px-4">Athlete</th>
-            <th className="text-left py-2 px-4">Team</th>
-            <th className="text-right py-2 px-4">Time</th>
+            <th className="px-4 py-3 text-left font-semibold">Place</th>
+            <th className="px-4 py-3 text-left font-semibold">Athlete</th>
+            <th className="px-4 py-3 text-left font-semibold">Team</th>
+            <th className="px-4 py-3 text-right font-semibold">Time</th>
           </tr>
         </thead>
         <tbody>
-          {results.map((r: any, i: number) => (
-            <tr key={i} className="border-b hover:bg-green-50">
-              <td className="py-2 px-4 text-gray-700">{r.place}</td>
-              <td className="py-2 px-4 text-green-700 hover:underline">
-                <a href={`/athletes/${r.athlete_id}`}>{r.athlete_name}</a>
+          {results.map((result) => (
+            <tr
+              key={`${result.athlete_id}-${result.place ?? result.time}`}
+              className="border-b border-border/70 text-muted transition-colors last:border-b-0 hover:bg-surface/60 hover:text-foreground"
+            >
+              <td className="px-4 py-3 font-mono text-xs">{result.place ?? "—"}</td>
+              <td className="px-4 py-3">
+                <a
+                  href={`/athletes/${result.athlete_id}`}
+                  className="font-semibold text-foreground transition-colors hover:text-accent"
+                >
+                  {result.athlete_name}
+                </a>
               </td>
-              <td className="py-2 px-4 text-green-700 hover:underline">
-                <a href={`/teams/${r.team_slug}`}>{r.team_name}</a>
+              <td className="px-4 py-3">
+                <a
+                  href={`/teams/${result.team_slug}`}
+                  className="transition-colors hover:text-accent"
+                >
+                  {result.team_name}
+                </a>
               </td>
-              <td className="py-2 px-4 text-right font-medium text-gray-700">{r.time}</td>
+              <td className="px-4 py-3 text-right font-mono font-bold text-foreground">
+                {result.time}
+              </td>
             </tr>
           ))}
         </tbody>
