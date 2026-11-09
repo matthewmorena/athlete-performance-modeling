@@ -121,7 +121,7 @@ export default function TickerChart({ data }: TickerChartProps) {
               type="monotone"
               dataKey="rating"
               name="Rating"
-              stroke="var(--accent)"
+              stroke="var(--chart)"
               strokeWidth={3}
               dot={false}
               activeDot={{ r: 5, fill: "var(--accent)", stroke: "var(--accent-ink)", strokeWidth: 2 }}

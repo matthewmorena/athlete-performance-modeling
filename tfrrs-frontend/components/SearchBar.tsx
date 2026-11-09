@@ -76,7 +76,7 @@ export default function SearchBar() {
   return (
     <div className="relative w-full">
       <label htmlFor="athlete-search" className="sr-only">
-        Search athletes
+        Search all athletes
       </label>
       <input
         id="athlete-search"
@@ -84,7 +84,7 @@ export default function SearchBar() {
         value={query}
         onChange={handleQueryChange}
         onFocus={() => results.length > 0 && setShowDropdown(true)}
-        placeholder="Search athletes…"
+        placeholder="Search all athletes..."
         autoComplete="off"
         className="w-full rounded-xl border border-border bg-background px-3 py-2 pr-10 text-sm text-foreground placeholder:text-muted outline-none transition-colors focus:border-accent"
       />
@@ -99,7 +99,7 @@ export default function SearchBar() {
       )}
 
       {showDropdown && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-full overflow-hidden rounded-xl border border-border bg-panel shadow-2xl">
+        <div className="absolute left-0 top-full z-50 mt-2 w-full overflow-hidden rounded-xl border border-border bg-panel font-mono shadow-2xl">
           {results.length > 0 ? (
             <ul className="max-h-72 overflow-y-auto py-1 text-sm">
               {results.map((athlete) => (

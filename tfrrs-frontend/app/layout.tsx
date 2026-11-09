@@ -7,7 +7,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Track Exchange",
-  description: "Explore athlete results, ELO ratings, and performance momentum.",
+  description: "Collegiate track and field results and athlete performance ratings.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
@@ -15,7 +15,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
     <html lang="en">
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         <Navbar />
-        <main className="min-h-[calc(100vh-69px)]">{children}</main>
+        <main>{children}</main>
       </body>
     </html>
   );
